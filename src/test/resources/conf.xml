@@ -726,7 +726,7 @@
             raise-error-on-failed-retrieval="no">
 
         <builtin-modules>
-            <module uri="https://my-organisation.com/exist-db/ns/app/my-java-module" class="org.exist.xquery.functions.jsch.ExampleModule"/>
+            <module uri="https://exist-db.org/exist-db/ns/app/jsch" class="org.exist.xquery.functions.jsch.JschModule"/>
         </builtin-modules>
     </xquery>
 

@@ -14,22 +14,22 @@ import static org.exist.xquery.FunctionDSL.functionDefs;
  * A very simple example XQuery Library Module implemented
  * in Java.
  */
-public class ExampleModule extends AbstractInternalModule {
+public class JschModule extends AbstractInternalModule {
 
-    public static final String NAMESPACE_URI = "https://my-organisation.com/exist-db/ns/app/my-java-module";
-    public static final String PREFIX = "myjmod";
+    public static final String NAMESPACE_URI = "https://exist-db.org/exist-db/ns/app/jsch";
+    public static final String PREFIX = "ssh";
     public static final String RELEASED_IN_VERSION = "eXist-3.6.0";
 
     // register the functions of the module
     public static final FunctionDef[] functions = functionDefs(
-        functionDefs(ExampleFunctions.class,
-                ExampleFunctions.FS_HELLO_WORLD,
-                ExampleFunctions.FS_SAY_HELLO,
-                ExampleFunctions.FS_ADD
+        functionDefs(JschFunctions.class,
+                JschFunctions.FS_HELLO_WORLD,
+                JschFunctions.FS_SAY_HELLO,
+                JschFunctions.FS_ADD
         )
     );
 
-    public ExampleModule(final Map<String, List<? extends Object>> parameters) {
+    public JschModule(final Map<String, List<? extends Object>> parameters) {
         super(functions, parameters);
     }
 

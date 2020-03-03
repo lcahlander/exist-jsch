@@ -15,13 +15,13 @@ import org.exist.xquery.value.Type;
 import java.util.Optional;
 
 import static org.exist.xquery.FunctionDSL.*;
-import static org.exist.xquery.functions.jsch.ExampleModule.functionSignature;
+import static org.exist.xquery.functions.jsch.JschModule.functionSignature;
 
 /**
  * Some very simple XQuery example functions implemented
  * in Java.
  */
-public class ExampleFunctions extends BasicFunction {
+public class JschFunctions extends BasicFunction {
 
     private static final String FS_HELLO_WORLD_NAME = "hello-world";
     static final FunctionSignature FS_HELLO_WORLD = functionSignature(
@@ -48,7 +48,7 @@ public class ExampleFunctions extends BasicFunction {
             param("b", Type.INT, "A number")
     );
 
-    public ExampleFunctions(final XQueryContext context, final FunctionSignature signature) {
+    public JschFunctions(final XQueryContext context, final FunctionSignature signature) {
         super(context, signature);
     }
 

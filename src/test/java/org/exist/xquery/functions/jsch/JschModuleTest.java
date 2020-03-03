@@ -24,7 +24,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class ExampleModuleTest {
+public class JschModuleTest {
 
     @ClassRule
     public static ExistEmbeddedServer existEmbeddedServer = new ExistEmbeddedServer(false, true);
@@ -32,8 +32,8 @@ public class ExampleModuleTest {
     @Test
     public void helloWorld() throws XPathException, PermissionDeniedException, EXistException {
         final String query =
-                "declare namespace myjmod = \"https://my-organisation.com/exist-db/ns/app/my-java-module\";\n" +
-                        "myjmod:hello-world()";
+                "declare namespace ssh = \"https://exist-db.org/exist-db/ns/app/jsch\";\n" +
+                        "ssh:hello-world()";
         final Sequence result = executeQuery(query);
 
         assertTrue(result.hasOne());
@@ -52,8 +52,8 @@ public class ExampleModuleTest {
     @Test
     public void sayHello() throws XPathException, PermissionDeniedException, EXistException {
         final String query =
-                "declare namespace myjmod = \"https://my-organisation.com/exist-db/ns/app/my-java-module\";\n" +
-                        "myjmod:say-hello('Adam')";
+                "declare namespace ssh = \"https://exist-db.org/exist-db/ns/app/jsch\";\n" +
+                        "ssh:say-hello('Adam')";
         final Sequence result = executeQuery(query);
 
         assertTrue(result.hasOne());
@@ -72,8 +72,8 @@ public class ExampleModuleTest {
     @Test
     public void sayHello_noName() throws XPathException, PermissionDeniedException, EXistException {
         final String query =
-                "declare namespace myjmod = \"https://my-organisation.com/exist-db/ns/app/my-java-module\";\n" +
-                        "myjmod:say-hello(())";
+                "declare namespace ssh = \"https://exist-db.org/exist-db/ns/app/jsch\";\n" +
+                        "ssh:say-hello(())";
         final Sequence result = executeQuery(query);
 
         assertTrue(result.hasOne());
@@ -92,8 +92,8 @@ public class ExampleModuleTest {
     @Test
     public void add() throws XPathException, PermissionDeniedException, EXistException {
         final String query =
-                "declare namespace myjmod = \"https://my-organisation.com/exist-db/ns/app/my-java-module\";\n" +
-                        "myjmod:add(123, 456)";
+                "declare namespace ssh = \"https://exist-db.org/exist-db/ns/app/jsch\";\n" +
+                        "ssh:add(123, 456)";
         final Sequence result = executeQuery(query);
 
         assertTrue(result.hasOne());
