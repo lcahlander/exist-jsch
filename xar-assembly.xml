@@ -7,9 +7,7 @@
     <license>GNU Lesser General Public License, version 2.1</license>
     <copyright>true</copyright>
 
-    <!-- should be either "application" or "library" -->
-    <type>application</type>
-    <!-- type>library</type -->
+    <type>library</type>
 
     <status>stable</status>
 
@@ -41,14 +39,6 @@
 
     <!-- include the XQuery Library modules written in XQuery from this project -->
     <xquerySets>
-        <xquerySet>
-            <namespace>https://my-organisation.com/exist-db/ns/app/my-xquery-module</namespace>
-            <directory>${basedir}/src/main/xquery</directory>
-            <includes>
-                <include>example-module.xqm</include>
-            </includes>
-            <outputDirectory>content</outputDirectory>
-        </xquerySet>
     </xquerySets>
 
     <!-- include the XQuery Library Module written in Java (JAR output) from this project -->
@@ -57,6 +47,12 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>${project.artifactId}</artifactId>
             <version>${project.version}</version>
+        </dependencySet>
+        <!-- https://mvnrepository.com/artifact/com.jcraft/jsch -->
+        <dependencySet>
+            <groupId>com.jcraft</groupId>
+            <artifactId>jsch</artifactId>
+            <version>0.1.55</version>
         </dependencySet>
     </dependencySets>
 
