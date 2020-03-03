@@ -1,16 +1,13 @@
 package org.exist.xquery.functions.jsch;
 
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
 import org.exist.dom.QName;
 import org.exist.dom.memtree.DocumentImpl;
 import org.exist.dom.memtree.MemTreeBuilder;
-import org.exist.xquery.BasicFunction;
-import org.exist.xquery.FunctionSignature;
-import org.exist.xquery.XPathException;
-import org.exist.xquery.XQueryContext;
-import org.exist.xquery.value.IntegerValue;
-import org.exist.xquery.value.Sequence;
-import org.exist.xquery.value.StringValue;
-import org.exist.xquery.value.Type;
+import org.exist.xquery.*;
+import org.exist.xquery.value.*;
 
 import java.util.Optional;
 
@@ -23,30 +20,38 @@ import static org.exist.xquery.functions.jsch.JschModule.functionSignature;
  */
 public class JschFunctions extends BasicFunction {
 
-    private static final String FS_HELLO_WORLD_NAME = "hello-world";
-    static final FunctionSignature FS_HELLO_WORLD = functionSignature(
-        FS_HELLO_WORLD_NAME,
-        "An example function that returns <hello>world</hello>.",
-        returns(Type.DOCUMENT),
-        null
-    );
+    protected static final FunctionReturnSequenceType RETURN_TYPE = new FunctionReturnSequenceType(Type.LONG, Cardinality.ZERO_OR_ONE, "an xs:long representing the connection handle");
 
-    private static final String FS_SAY_HELLO_NAME = "say-hello";
-    static final FunctionSignature FS_SAY_HELLO = functionSignature(
-            FS_SAY_HELLO_NAME,
-            "An example function that returns <hello>{$name}</hello>.",
-            returns(Type.DOCUMENT),
-            optParam("name", Type.STRING, "A name")
-    );
+    protected static final FunctionReturnSequenceType ASSIGNED_PORT_RETURN_TYPE = new FunctionReturnSequenceType(Type.INT, Cardinality.ZERO_OR_ONE, "The assigned local port");
 
-    private static final String FS_ADD_NAME = "add";
-    static final FunctionSignature FS_ADD = functionSignature(
-            FS_ADD_NAME,
-            "An example function that adds two numbers together.",
-            returns(Type.INT),
-            param("a", Type.INT, "A number"),
-            param("b", Type.INT, "A number")
-    );
+    protected static final FunctionParameterSequenceType SSH_PASSWORD_PARAM = new FunctionParameterSequenceType("password", Type.STRING, Cardinality.EXACTLY_ONE, "The SSH password");
+
+    protected static final FunctionParameterSequenceType SSH_USERNAME_PARAM = new FunctionParameterSequenceType("username", Type.STRING, Cardinality.EXACTLY_ONE, "The SSH username");
+
+    protected static final FunctionParameterSequenceType SSH_HOST_PARAM = new FunctionParameterSequenceType("host", Type.STRING, Cardinality.EXACTLY_ONE, "The SSH session hostname");
+
+    protected static final FunctionParameterSequenceType SSH_LOCAL_PORT_PARAM = new FunctionParameterSequenceType("local-port", Type.INT, Cardinality.EXACTLY_ONE, "The port forwarding local port number");
+
+    protected static final FunctionParameterSequenceType SSH_REMOTE_HOST_PARAM = new FunctionParameterSequenceType("remote-host", Type.STRING, Cardinality.EXACTLY_ONE, "The port forwarding remote hostname");
+
+    protected static final FunctionParameterSequenceType SSH_REMOTE_PORT_PARAM = new FunctionParameterSequenceType("remote-port", Type.INT, Cardinality.EXACTLY_ONE, "The port forwarding remote port number");
+
+    protected static final FunctionParameterSequenceType SSH_SESSION_HANDLE_PARAM = new FunctionParameterSequenceType("handle", Type.LONG, Cardinality.EXACTLY_ONE, "The SSH session handle");
+
+    public final static FunctionSignature[] signatures = {
+            new FunctionSignature(
+                    new QName("get-session", JschModule.NAMESPACE_URI, JschModule.PREFIX),
+                    "Opens an SSH session",
+                    new SequenceType[]{SSH_HOST_PARAM, SSH_USERNAME_PARAM, SSH_PASSWORD_PARAM},
+                    RETURN_TYPE),
+
+            new FunctionSignature(
+                    new QName("forward-port", JschModule.NAMESPACE_URI, JschModule.PREFIX),
+                    "Prepares a SQL statement against a SQL db using the connection indicated by the connection handle.",
+                    new SequenceType[]{SSH_SESSION_HANDLE_PARAM, SSH_LOCAL_PORT_PARAM, SSH_REMOTE_HOST_PARAM, SSH_REMOTE_PORT_PARAM},
+                    ASSIGNED_PORT_RETURN_TYPE
+            )
+    };
 
     public JschFunctions(final XQueryContext context, final FunctionSignature signature) {
         super(context, signature);
@@ -56,55 +61,52 @@ public class JschFunctions extends BasicFunction {
     public Sequence eval(final Sequence[] args, final Sequence contextSequence) throws XPathException {
         switch (getName().getLocalPart()) {
 
-            case FS_HELLO_WORLD_NAME:
-                return sayHello(Optional.of(new StringValue("World")));
+            case "get-session":
+                return getSession(args, contextSequence);
 
-            case FS_SAY_HELLO_NAME:
-                final Optional<StringValue> name = args[0].isEmpty() ? Optional.empty() : Optional.of((StringValue)args[0].itemAt(0));
-                return sayHello(name);
-
-            case FS_ADD_NAME:
-                final IntegerValue a = (IntegerValue) args[0].itemAt(0);
-                final IntegerValue b = (IntegerValue) args[1].itemAt(0);
-                return add(a, b);
+            case "forward-port":
+                return forwardPort(args, contextSequence);
 
             default:
                 throw new XPathException(this, "No function: " + getName() + "#" + getSignature().getArgumentCount());
         }
     }
 
-    /**
-     * Creates an XML document like <hello>name</hello>.
-     *
-     * @param name An optional name, if empty then "stranger" is used.
-     *
-     * @return An XML document
-     */
-    private DocumentImpl sayHello(final Optional<StringValue> name) throws XPathException {
-        try {
-            final MemTreeBuilder builder = new MemTreeBuilder(context);
-            builder.startDocument();
-            builder.startElement(new QName("hello"), null);
-            builder.characters(name.map(StringValue::toString).orElse("stranger"));
-            builder.endElement();
-            builder.endDocument();
+    private Sequence getSession(final Sequence[] args, final Sequence contextSequence) throws XPathException {
 
-            return builder.getDocument();
-        } catch (final QName.IllegalQNameException e) {
+        String hostName = args[0].getStringValue();
+        String userName = args[1].getStringValue();
+        String password = args[2].getStringValue();
+        Session session = null;
+        try {
+            java.util.Properties config = new java.util.Properties();
+            config.put("StrictHostKeyChecking", "no");
+            final JSch jsch = new JSch();
+            session = jsch.getSession(userName, hostName, 22);
+            session.setPassword(password);
+            session.setConfig(config);
+            session.connect();
+            return new IntegerValue(JschModule.storeSession(context, session));
+        } catch (JSchException e) {
             throw new XPathException(this, e.getMessage(), e);
         }
     }
 
-    /**
-     * Adds two numbers together.
-     *
-     * @param a The first number
-     * @param b The second number
-     *
-     * @return The result;
-     */
-    private IntegerValue add(final IntegerValue a, final IntegerValue b) throws XPathException {
-        final int result = a.getInt() + b.getInt();
-        return new IntegerValue(result);
+    private Sequence forwardPort(final Sequence[] args, final Sequence contextSequence) throws XPathException {
+
+        long sessionUID = ((IntegerValue) args[0].itemAt(0)).getLong();
+        Session session = JschModule.retrieveSession(context, sessionUID);
+        int localPort = ((IntegerValue) args[1].itemAt(0)).getInt();
+        String remoteHostName = args[2].getStringValue();
+        int remotePort = ((IntegerValue) args[3].itemAt(0)).getInt();
+        int assignedPort;
+        try {
+            assignedPort = session.setPortForwardingL(localPort, remoteHostName, remotePort);
+
+            return new IntegerValue(assignedPort);
+        } catch (JSchException e) {
+            throw new XPathException(this, e.getMessage(), e);
+        }
     }
+
 }

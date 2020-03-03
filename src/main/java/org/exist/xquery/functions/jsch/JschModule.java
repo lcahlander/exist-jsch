@@ -1,12 +1,15 @@
 package org.exist.xquery.functions.jsch;
 
+import com.jcraft.jsch.Session;
 import org.exist.dom.QName;
 import org.exist.xquery.*;
+import org.exist.xquery.modules.ModuleUtils;
 import org.exist.xquery.value.FunctionParameterSequenceType;
 import org.exist.xquery.value.FunctionReturnSequenceType;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import static org.exist.xquery.FunctionDSL.functionDefs;
 
@@ -22,12 +25,10 @@ public class JschModule extends AbstractInternalModule {
 
     // register the functions of the module
     public static final FunctionDef[] functions = functionDefs(
-        functionDefs(JschFunctions.class,
-                JschFunctions.FS_HELLO_WORLD,
-                JschFunctions.FS_SAY_HELLO,
-                JschFunctions.FS_ADD
-        )
+        functionDefs(JschFunctions.class, JschFunctions.signatures)
     );
+
+    public final static String SESSIONS_CONTEXTVAR = "_exist_ssh_sessions";
 
     public JschModule(final Map<String, List<? extends Object>> parameters) {
         super(functions, parameters);
@@ -51,6 +52,49 @@ public class JschModule extends AbstractInternalModule {
     @Override
     public String getReleaseVersion() {
         return RELEASED_IN_VERSION;
+    }
+
+    public static Session retrieveSession(XQueryContext context, long sessionUID) {
+        return ModuleUtils.retrieveObjectFromContextMap(context, JschModule.SESSIONS_CONTEXTVAR, sessionUID);
+    }
+
+    public static synchronized long storeSession(XQueryContext context, Session session) {
+        return ModuleUtils.storeObjectInContextMap(context, JschModule.SESSIONS_CONTEXTVAR, session);
+    }
+
+    /**
+     * Resets the Module Context and closes any DB connections for the XQueryContext.
+     *
+     * @param xqueryContext The XQueryContext
+     */
+    @Override
+    public void reset(XQueryContext xqueryContext, boolean keepGlobals) {
+        // reset the module context
+        super.reset(xqueryContext, keepGlobals);
+
+        // close any open Sessions
+        closeAllSessions(xqueryContext);
+    }
+
+    private static void closeAllSessions(XQueryContext context) {
+        ModuleUtils.modifyContextMap(context, JschModule.SESSIONS_CONTEXTVAR, new ModuleUtils.ContextMapEntryModifier<Session>() {
+
+            @Override
+            public void modify(Map<Long, Session> map) {
+                super.modify(map);
+
+                // empty the map
+                map.clear();
+            }
+
+            @Override
+            public void modify(Entry<Long, Session> entry) {
+                final Session session = entry.getValue();
+                if (session.isConnected()) {
+                    session.disconnect();
+                }
+            }
+        });
     }
 
     static FunctionSignature functionSignature(final String name, final String description,
