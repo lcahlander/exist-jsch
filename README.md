@@ -13,7 +13,7 @@ import module namespace ssh = "https://exist-db.org/exist-db/ns/app/jsch";
 ssh:get-session("10.211.55.15", "parallels", "xxxxxxxx")
 ```
 
-This returns an xs:long that is a handle to the session.
+This returns an xs:long that is a handle to the session.  That session handle is used by the `forward-port` function. 
 
 ```xquery
 xquery version "3.1";
